@@ -20,7 +20,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve frontend static files
-app.use(express.static(path.join(__dirname, 'public')));
+const publicDir = path.join(process.cwd(), 'public');
+app.use(express.static(publicDir));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -33,13 +34,15 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'OrbitVault Auth & Dashboard API',
+    serverless: Boolean(process.env.VERCEL),
   });
 });
 
 // Fallback to index.html for non-API GET requests
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api')) {
-    return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    const indexPath = path.join(publicDir, 'index.html');
+    return res.sendFile(indexPath);
   }
   next();
 });
@@ -53,12 +56,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`===============================================`);
-  console.log(`🚀 OrbitVault Server is active!`);
-  console.log(`🌐 Local URL: http://localhost:${PORT}`);
-  console.log(`🔐 Storage: JSON Flat-File DB in ./data/`);
-  console.log(`===============================================`);
-});
+// Only listen locally if NOT running in Vercel serverless environment
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`===============================================`);
+    console.log(`🚀 OrbitVault Server is active!`);
+    console.log(`🌐 Local URL: http://localhost:${PORT}`);
+    console.log(`🔐 Storage: JSON Flat-File DB`);
+    console.log(`===============================================`);
+  });
+}
 
 module.exports = app;
